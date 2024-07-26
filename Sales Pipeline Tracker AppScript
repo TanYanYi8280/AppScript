@@ -1,0 +1,55 @@
+// Define constants
+const SHEET_NAME = 'Sales Pipeline Tracker';
+const EMAIL_TEMPLATE = `
+Dear {leadName},
+
+This is a reminder to follow up with {leadName} regarding their current status: {status}.
+
+Best regards,
+Your Sales Team
+`;
+
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('Sales Pipeline Tracker')
+    .addItem('Send Follow-Up Reminders', 'sendFollowUpReminders')
+    .addToUi();
+}
+
+function sendFollowUpReminders() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const data = sheet.getDataRange().getValues();
+  const today = new Date();
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const leadName = row[1];
+    const email = row[2];
+    const status = row[4];
+    const nextFollowUpDate = new Date(row[6]);
+    
+    if (nextFollowUpDate <= today) {
+      const subject = `Follow-Up Reminder for ${leadName}`;
+      const body = EMAIL_TEMPLATE
+        .replace(/{leadName}/g, leadName)
+        .replace(/{status}/g, status);
+        
+      MailApp.sendEmail(email, subject, body);
+      
+      // Update the Last Contacted Date
+      sheet.getRange(i + 1, 5).setValue(today);  // Column 5 is Last Contacted Date
+    }
+  }
+}
+
+function createPipelineVisualization() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const dataRange = sheet.getDataRange();
+  const chart = sheet.newChart()
+    .setChartType(Charts.ChartType.COLUMN)
+    .addRange(dataRange)
+    .setPosition(5, 10, 0, 0)
+    .build();
+  
+  sheet.insertChart(chart);
+}
